@@ -17,18 +17,24 @@ async fn main() -> io::Result<()> {
             // We want to read the data into our buffer, then write
             // it back to the same socket.
             loop {
-                let n = socket
-                    .read(&mut buf)
-                    .await
-                    .expect("failed to read data from socket");
-
-                // Perhaps we don't want to accept empty buffers,
-                // but for now we can ignore that.
-
-                socket
-                    .write_all(&buf[..n])
-                    .await
-                    .expect("failed to write data to socket");
+                match socket.read(&mut buf).await {
+                    Ok(0) => return,
+                    Ok(n) => {
+                        println!(
+                            "received {} bytes, msg: {}",
+                            n,
+                            String::from_utf8_lossy(buf.clone()[..n].to_vec().as_slice())
+                        );
+                        socket
+                            .write_all(&buf[..n])
+                            .await
+                            .expect("failed to write data to socket");
+                    }
+                    Err(e) => {
+                        eprintln!("failed to read from socket; err = {:?}", e);
+                        return;
+                    }
+                }
             }
         });
     }
