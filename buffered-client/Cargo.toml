@@ -1,0 +1,9 @@
+[package]
+name = "buffered-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.37.0", features = ["full", "tracing"] }
+console-subscriber = "0.2.0"
+
