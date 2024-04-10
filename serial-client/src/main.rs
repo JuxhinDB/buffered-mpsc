@@ -1,13 +1,18 @@
-use std::io;
-use tokio::{io::AsyncWriteExt, net::TcpSocket};
+use std::{io, time::Duration};
+use tokio::{io::AsyncWriteExt, net::TcpSocket, task::JoinSet, time::interval};
 
 async fn worker(tx: tokio::sync::mpsc::UnboundedSender<u8>) {
     let mut potato = 0;
 
     loop {
-        // It's okay to truncate
         potato = (potato + 1) % 255;
-        tx.send(potato).unwrap();
+
+        if let Err(e) = tx.send(potato) {
+            eprintln!("failed to send potato: {}", e);
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(1)).await;
     }
 }
 
@@ -22,20 +27,37 @@ async fn main() -> io::Result<()> {
     let mut workers = 1;
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-    tokio::spawn(worker(tx.clone()));
 
-    loop {
-        if iters % 1000_000 == 0 && workers < 16 {
+    let mut join_set = JoinSet::new();
+    join_set.spawn(worker(tx.clone()));
+
+    let mut interval = interval(Duration::from_millis(10_000_000));
+    interval.tick().await;
+
+    'outer: loop {
+        println!("backlog: {}", rx.len());
+        if iters % 1000 == 0 && workers < 64 {
             println!("iters: {}, workers: {}", iters, workers);
             tokio::spawn(worker(tx.clone()));
             workers += 1;
         }
 
-        let potato = rx.recv().await.unwrap();
-        println!("backlog: {}", rx.len());
-
-        stream.write_all(&[potato]).await.unwrap();
+        tokio::select! {
+            biased;
+            _ = interval.tick() => {
+                println!("time elapsed with {} workers and backlog: {}", workers, rx.len());
+                join_set.shutdown().await;
+                break 'outer;
+            },
+            potato = rx.recv() => {
+                if let Some(potato) = potato {
+                    stream.write_all(&[potato]).await.unwrap();
+                }
+            }
+        }
 
         iters += 1;
     }
+
+    Ok(())
 }
