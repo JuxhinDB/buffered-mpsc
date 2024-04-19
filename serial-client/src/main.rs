@@ -50,6 +50,10 @@ async fn main() -> io::Result<()> {
                 break 'outer;
             },
             potato = rx.recv() => {
+
+                // Hold the connection for 50ms to simulate a workload.
+                tokio::time::sleep(Duration::from_millis(50)).await;
+
                 if let Some(potato) = potato {
                     stream.write_all(&[potato]).await.unwrap();
                 }

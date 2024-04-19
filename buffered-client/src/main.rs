@@ -63,6 +63,9 @@ async fn main() -> io::Result<()> {
                 }
 
                 if buffer.len() == buffer.capacity() {
+                    // Hold the connection for 50ms to simulate a workload.
+                    tokio::time::sleep(Duration::from_millis(50)).await;
+
                     stream.write_all(&buffer).await.unwrap();
                     buffer.clear();
                 }

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tokio::{
     io::{self, AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
@@ -25,6 +27,7 @@ async fn main() -> io::Result<()> {
                             n,
                             String::from_utf8_lossy(buf.clone()[..n].to_vec().as_slice())
                         );
+
                         socket
                             .write_all(&buf[..n])
                             .await
