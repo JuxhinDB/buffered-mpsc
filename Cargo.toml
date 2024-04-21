@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "buffered-client",
+    "mutex-buffered-client",
+    "serial-client",
+    "server"
+]
+
+[workspace.dependencies]
+tokio = { version = "1.37.0", features = ["full"] }
+

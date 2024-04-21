@@ -16,8 +16,7 @@ async fn worker(tx: tokio::sync::mpsc::UnboundedSender<u8>) {
     }
 }
 
-#[tokio::main]
-async fn main() -> io::Result<()> {
+pub async fn runner(samples: u64) -> io::Result<()> {
     let addr = "127.0.0.1:8080".parse().unwrap();
 
     let socket = TcpSocket::new_v4()?;
@@ -31,10 +30,7 @@ async fn main() -> io::Result<()> {
     let mut join_set = JoinSet::new();
     join_set.spawn(worker(tx.clone()));
 
-    let mut interval = interval(Duration::from_millis(10_000_000));
-    interval.tick().await;
-
-    'outer: loop {
+    while iters < samples {
         println!("backlog: {}", rx.len());
         if iters % 1000 == 0 && workers < 64 {
             println!("iters: {}, workers: {}", iters, workers);
@@ -42,26 +38,22 @@ async fn main() -> io::Result<()> {
             workers += 1;
         }
 
-        tokio::select! {
-            biased;
-            _ = interval.tick() => {
-                println!("time elapsed with {} workers and backlog: {}", workers, rx.len());
-                join_set.shutdown().await;
-                break 'outer;
-            },
-            potato = rx.recv() => {
-
-                // Hold the connection for 50ms to simulate a workload.
-                tokio::time::sleep(Duration::from_millis(50)).await;
-
-                if let Some(potato) = potato {
-                    stream.write_all(&[potato]).await.unwrap();
-                }
-            }
+        if let Some(potato) = rx.recv().await {
+            // Hold the connection for 50ms to simulate a workload.
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            stream.write_all(&[potato]).await.unwrap();
         }
 
+
         iters += 1;
+
     }
 
     Ok(())
+
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
+    runner(10_000_000).await
 }
