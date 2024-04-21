@@ -11,8 +11,6 @@ async fn worker(tx: tokio::sync::mpsc::UnboundedSender<u8>) {
             eprintln!("failed to send potato: {}", e);
             break;
         }
-
-        tokio::time::sleep(Duration::from_millis(1)).await;
     }
 }
 
@@ -39,8 +37,6 @@ pub async fn runner(samples: u64) -> io::Result<()> {
         }
 
         if let Some(potato) = rx.recv().await {
-            // Hold the connection for 50ms to simulate a workload.
-            tokio::time::sleep(Duration::from_millis(50)).await;
             stream.write_all(&[potato]).await.unwrap();
         }
 

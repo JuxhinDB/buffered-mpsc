@@ -16,8 +16,6 @@ async fn worker(buf: Arc<Mutex<Vec<u8>>>) {
         let mut buf = buf.lock().await;
         buf.push(potato);
         drop(buf);
-
-        tokio::time::sleep(Duration::from_millis(1)).await;
     }
 }
 
@@ -53,7 +51,9 @@ pub async fn runner(samples: u64) -> io::Result<()> {
 
     let buf = std::sync::Arc::new(Mutex::new(Vec::with_capacity(64)));
 
-    tokio::join!(worker(Arc::clone(&buf)), actor(Arc::clone(&buf), stream, samples));
+    tokio::spawn(worker(Arc::clone(&buf)));
+
+    actor(Arc::clone(&buf), stream, samples).await;
 
     Ok(())
 }
