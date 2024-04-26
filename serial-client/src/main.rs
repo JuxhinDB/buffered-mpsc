@@ -1,5 +1,5 @@
-use std::{io, time::Duration};
-use tokio::{io::AsyncWriteExt, net::TcpSocket, task::JoinSet, time::interval};
+use std::io;
+use tokio::{io::AsyncWriteExt, net::TcpSocket, task::JoinSet};
 
 async fn worker(tx: tokio::sync::mpsc::UnboundedSender<u8>) {
     let mut potato = 0;
@@ -30,7 +30,7 @@ pub async fn runner(samples: u64) -> io::Result<()> {
 
     while iters < samples {
         println!("backlog: {}", rx.len());
-        if iters % 1000 == 0 && workers < 64 {
+        if iters % 1_000_000 == 0 && workers < 64 {
             println!("iters: {}, workers: {}", iters, workers);
             tokio::spawn(worker(tx.clone()));
             workers += 1;
