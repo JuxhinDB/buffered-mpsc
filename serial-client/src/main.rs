@@ -40,13 +40,10 @@ pub async fn runner(samples: u64) -> io::Result<()> {
             stream.write_all(&[potato]).await.unwrap();
         }
 
-
         iters += 1;
-
     }
 
     Ok(())
-
 }
 
 #[tokio::main]

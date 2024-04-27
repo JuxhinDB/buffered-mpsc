@@ -3,7 +3,7 @@ use tokio::sync::Mutex;
 
 pub async fn mutex_worker(buf: Arc<Mutex<Vec<u8>>>, samples: u64) {
     let mut potato = 0;
-    
+
     for _ in 0..samples {
         potato = (potato + 1) % 255;
 
@@ -23,10 +23,6 @@ pub async fn mutex_actor(buf: Arc<Mutex<Vec<u8>>>, samples: u64) {
         let mut buffer = Vec::with_capacity(current.capacity());
         std::mem::swap(&mut buffer, &mut *current);
         drop(current);
-
-        // Instead of writing to a socket, we'll just sleep for a bit. We do
-        // this to avoid including I/O in the benchmark.
-        //tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
         iters += 1;
     }
@@ -49,10 +45,6 @@ pub async fn serial_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<u8>, samp
 
     while iters < samples {
         let _ = rx.recv().await;
-
-        // Instead of writing to a socket, we'll just sleep for a bit. We do
-        // this to avoid including I/O in the benchmark.
-        //tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
         iters += 1;
     }
