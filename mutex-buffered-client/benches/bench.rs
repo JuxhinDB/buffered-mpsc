@@ -1,11 +1,12 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use mutex_buffered_client::{mutex_actor, mutex_worker, serial_actor};
+use mutex_buffered_client::{mutex_actor, mutex_worker, serial_actor, serial_worker};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::Duration;
 use tokio::runtime::Runtime;
-use tokio::sync::Mutex;
+use tokio::task::JoinSet;
 
-const SAMPLE_SIZE: u64 = 1000; // Number of samples to send
+const SAMPLE_SIZE: usize = 1000; // Number of samples to send
 const WORKERS: [i32; 10] = [1, 4, 8, 16, 32, 64, 128, 256, 512, 1024]; // Different worker counts to test
 
 fn mutex_bench(c: &mut Criterion) {
@@ -19,17 +20,17 @@ fn mutex_bench(c: &mut Criterion) {
             |b, &num_workers| {
                 b.to_async(&runtime).iter(|| async {
                     let buffer = Arc::new(Mutex::new(Vec::with_capacity(buffer_size)));
+                    let mut join_set = JoinSet::new();
 
                     // Spawn workers
-                    let _ = (0..num_workers).map(|_| {
-                        let cloned_buffer = Arc::clone(&buffer);
-                        tokio::spawn(async move {
-                            mutex_worker(cloned_buffer, SAMPLE_SIZE).await;
-                        })
-                    });
+                    for _ in 0..num_workers {
+                        join_set.spawn(mutex_worker(Arc::clone(&buffer), SAMPLE_SIZE));
+                    }
 
                     // Actor handling the buffer
                     mutex_actor(Arc::clone(&buffer), SAMPLE_SIZE).await;
+
+                    join_set.shutdown().await;
                 });
             },
         );
@@ -46,19 +47,18 @@ fn serial_bench(c: &mut Criterion) {
             |b, &num_workers| {
                 b.to_async(&runtime).iter(|| async {
                     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+                    let mut join_set = JoinSet::new();
+
+                    // Actor handling the buffer, note we extend the sample size to 
+                    // allow for the actor to consume all the samples of all workers.
+                    join_set.spawn(serial_actor(rx, SAMPLE_SIZE * (num_workers as usize)));
 
                     // Spawn workers
-                    let _ = (0..num_workers).map(|_| {
-                        let cloned_tx = tx.clone();
-                        tokio::spawn(async move {
-                            for _ in 0..SAMPLE_SIZE {
-                                cloned_tx.send(0).unwrap();
-                            }
-                        })
-                    });
+                    for _ in 0..num_workers {
+                        join_set.spawn(serial_worker(tx.clone(), SAMPLE_SIZE));
+                    }
 
-                    // Actor handling the buffer
-                    serial_actor(rx, SAMPLE_SIZE).await;
+                    join_set.shutdown().await;
                 });
             },
         );
