@@ -16,8 +16,6 @@ fn mutex_bench(c: &mut Criterion) {
     let runtime = Runtime::new().unwrap(); // Create a new Tokio runtime
     let buffer_size = 1024;
 
-    let buffer_sizes = vec![64, 128, 256, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
-
     for num_workers in WORKERS {
         c.bench_with_input(
             BenchmarkId::new("mutex_buffer_handling", num_workers),

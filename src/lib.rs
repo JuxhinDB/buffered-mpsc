@@ -1,7 +1,7 @@
 use std::{io, sync::{
 Arc, Mutex,
 }};
-use tokio::io::AsyncWriteExt;
+use tokio::{io::AsyncWriteExt, sync::mpsc::{UnboundedReceiver, UnboundedSender}};
 use tokio::net::TcpStream;
 use tokio::net::TcpSocket;
 
@@ -34,11 +34,10 @@ pub async fn mutex_actor(buf: Arc<Mutex<Vec<u8>>>, samples: usize) -> io::Result
 
         // Consume the buffer
         stream.write_all(&buffer).await?;
-        buffer.clear();
     }
 }
 
-pub async fn serial_worker(tx: tokio::sync::mpsc::UnboundedSender<u8>, samples: usize) {
+pub async fn serial_worker(tx: UnboundedSender<u8>, samples: usize) {
     let mut potato = 0;
 
     for _ in 0..samples {
@@ -51,7 +50,7 @@ pub async fn serial_worker(tx: tokio::sync::mpsc::UnboundedSender<u8>, samples: 
     }
 }
 
-pub async fn serial_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<u8>) -> io::Result<()> {
+pub async fn serial_actor(mut rx: UnboundedReceiver<u8>) -> io::Result<()> {
     let mut stream = stream().await?;
 
     loop {
