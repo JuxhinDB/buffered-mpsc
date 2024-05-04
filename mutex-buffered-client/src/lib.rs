@@ -1,5 +1,9 @@
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::{io, sync::{
+Arc, Mutex,
+}};
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
+use tokio::net::TcpSocket;
 
 pub async fn mutex_worker(buf: Arc<Mutex<Vec<u8>>>, samples: usize) {
     let mut potato = 0;
@@ -13,15 +17,15 @@ pub async fn mutex_worker(buf: Arc<Mutex<Vec<u8>>>, samples: usize) {
     }
 }
 
-pub async fn mutex_actor(buf: Arc<Mutex<Vec<u8>>>, samples: usize) {
-    let mut iters = 0;
-
+#[allow(clippy::await_holding_lock)]
+pub async fn mutex_actor(buf: Arc<Mutex<Vec<u8>>>, samples: usize) -> io::Result<()> {
     // NOTE(jdb): We only allocate two buffers, whenever the consumer
     // consumes, it swaps the worker buffer with the current buffer
     // that is empty, and the current buffer is then consumed/cleared.
     let mut buffer = Vec::with_capacity(samples);
+    let mut stream = stream().await?;
 
-    while iters < samples {
+    loop {
         let mut current = buf.lock().unwrap();
 
         // Swap the buffer with an empty one.
@@ -29,9 +33,8 @@ pub async fn mutex_actor(buf: Arc<Mutex<Vec<u8>>>, samples: usize) {
         drop(current);
 
         // Consume the buffer
+        stream.write_all(&buffer).await?;
         buffer.clear();
-
-        iters += 1;
     }
 }
 
@@ -40,19 +43,27 @@ pub async fn serial_worker(tx: tokio::sync::mpsc::UnboundedSender<u8>, samples: 
 
     for _ in 0..samples {
         potato = (potato + 1) % 255;
-        if tx.send(potato).is_err() {
-            eprintln!("Receiver has dropped.");
+
+        if let Err(e) = tx.send(potato) {
+            eprintln!("tx err: {:?}", e.0);
             break;
         }
     }
 }
 
-pub async fn serial_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<u8>, samples: usize) {
-    let mut iters = 0;
+pub async fn serial_actor(mut rx: tokio::sync::mpsc::UnboundedReceiver<u8>) -> io::Result<()> {
+    let mut stream = stream().await?;
 
-    while iters < samples {
-        let _ = rx.recv().await;
-
-        iters += 1;
+    loop {
+        match rx.recv().await {
+            Some(msg) => stream.write_all(&[msg]).await?,
+            None => eprintln!("received none from channel"),
+        };
     }
+}
+
+async fn stream() -> io::Result<TcpStream> {
+    let addr = "127.0.0.1:8080".parse().unwrap();
+    let socket = TcpSocket::new_v4()?;
+    socket.connect(addr).await
 }

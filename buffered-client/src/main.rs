@@ -1,5 +1,5 @@
 use std::io;
-use tokio::{io::AsyncWriteExt, net::TcpSocket, task::JoinSet, time::Duration};
+use tokio::{io::AsyncWriteExt, net::TcpSocket, task::JoinSet};
 
 async fn worker(tx: tokio::sync::mpsc::UnboundedSender<u8>) {
     let mut potato = 0;

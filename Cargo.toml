@@ -9,4 +9,8 @@ members = [
 
 [workspace.dependencies]
 tokio = { version = "1.37.0", features = ["full"] }
+pprof = "0.13.0"
+
+[profile.bench]
+debug = true
 
