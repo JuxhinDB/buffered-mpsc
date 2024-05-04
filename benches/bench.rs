@@ -86,7 +86,7 @@ fn serial_bench(c: &mut Criterion) {
 criterion_group! {
     name = benches;
     config = Criterion::default()
-        .warm_up_time(Duration::from_secs(1))
+        .warm_up_time(Duration::from_secs(5))
         .with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)))
         .sample_size(10);
     targets = mutex_bench, serial_bench

@@ -1,16 +1,15 @@
-[workspace]
-resolver = "2"
-members = [
-    "buffered-client",
-    "mutex-buffered-client",
-    "serial-client",
-    "server"
-]
+[package]
+name = "mutex-buffered-client"
+version = "0.1.0"
+edition = "2021"
 
-[workspace.dependencies]
-tokio = { version = "1.37.0", features = ["full"] }
-pprof = "0.13.0"
+[dependencies]
+tokio = { version = "1.37.0", features = ["full", "tracing"] }
 
-[profile.bench]
-debug = true
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["async", "async_tokio"] }
+pprof = { version = "0.13.0", features = ["flamegraph", "criterion"] }
 
+[[bench]]
+name = "bench"
+harness = false
