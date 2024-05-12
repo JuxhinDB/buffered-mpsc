@@ -12,7 +12,7 @@ async fn main() -> io::Result<()> {
 
         // We'll process each socket concurrently.
         tokio::spawn(async move {
-            let mut buf = vec![0; 1024];
+            let mut buf = vec![0; 65535];
 
             // We want to read the data into our buffer, then write
             // it back to the same socket.
