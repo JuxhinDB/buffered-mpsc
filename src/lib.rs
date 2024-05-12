@@ -1,9 +1,13 @@
-use std::{io, sync::{
-Arc, Mutex,
-}};
-use tokio::{io::AsyncWriteExt, sync::mpsc::{UnboundedReceiver, UnboundedSender}};
-use tokio::net::TcpStream;
+use std::{
+    io,
+    sync::{Arc, Mutex},
+};
 use tokio::net::TcpSocket;
+use tokio::net::TcpStream;
+use tokio::{
+    io::AsyncWriteExt,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+};
 
 pub async fn mutex_worker(buf: Arc<Mutex<Vec<u8>>>, samples: usize) {
     let mut potato = 0;

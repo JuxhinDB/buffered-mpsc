@@ -1,16 +1,15 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use mutex_buffered_client::{mutex_actor, mutex_worker, serial_actor, serial_worker};
-use std::sync::{
-Arc, Mutex
-};
+use pprof::criterion::{Output, PProfProfiler};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio::task::JoinSet;
-use pprof::criterion::{Output, PProfProfiler};
-
 
 const SAMPLE_SIZE: usize = 1000; // Number of samples to send
-const WORKERS: [i32; 12] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]; // Different worker counts to test
+const WORKERS: [i32; 14] = [
+    1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8196,
+]; // Different worker counts to test
 
 fn mutex_bench(c: &mut Criterion) {
     let runtime = Runtime::new().unwrap(); // Create a new Tokio runtime
