@@ -10,7 +10,7 @@ use pprof::criterion::{Output, PProfProfiler};
 
 
 const SAMPLE_SIZE: usize = 1000; // Number of samples to send
-const WORKERS: [i32; 10] = [1, 4, 8, 16, 32, 64, 128, 256, 512, 1024]; // Different worker counts to test
+const WORKERS: [i32; 12] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]; // Different worker counts to test
 
 fn mutex_bench(c: &mut Criterion) {
     let runtime = Runtime::new().unwrap(); // Create a new Tokio runtime
@@ -38,12 +38,12 @@ fn mutex_bench(c: &mut Criterion) {
                         join_set.spawn(mutex_worker(Arc::clone(&buffer), SAMPLE_SIZE));
                     }
 
-                    while join_set.join_next().await.is_some() {
-                        // Waiting for workers to complete
-                    }
+                    tokio::select! {
+                        _ = local.run_until(actor) => {},
+                        _ = join_set.join_next() => {}
+                    };
 
                     join_set.shutdown().await;
-                    actor.abort();
                 });
             },
         );

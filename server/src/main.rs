@@ -21,9 +21,8 @@ async fn main() -> io::Result<()> {
                     Ok(0) => return,
                     Ok(n) => {
                         println!(
-                            "received {} bytes, msg: {}",
+                            "received {} bytes",
                             n,
-                            String::from_utf8_lossy(buf.clone()[..n].to_vec().as_slice())
                         );
 
                         socket
